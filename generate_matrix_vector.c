@@ -27,7 +27,6 @@ struct MatrixProduct {
     int *vectorv; //single dimension array represenint vector V
     int *productAv; //product of Av
     int seconds; //number of seconds required to perform sequentional Av.
-
 };
 
 //populate matrices with random integer values
@@ -42,22 +41,80 @@ void populateMatrices(struct MatrixProduct *mp) {
   }
 }
 
+//prints matrices for testing purposes (1-d representation)
+void printMatrices(struct MatrixProduct *mp) {
+  int rows = mp->numRows;
+  int cols = mp->numCols;
+  for (int r=0; r<rows*cols; ++r) {
+    printf(" %d ",mp->matrixA[r]);
+  }
+  printf("\n");
+  for (int c=0; c<cols; ++c) {
+    printf(" %d ",mp->vectorv[c]);
+  }
+  printf("\n");
+  for (int r=0; r<rows; ++r) {
+    printf(" %d ", mp->productAv[r]);
+  }
+}
+
 void calculateProduct(struct MatrixProduct *mp) {
   int rows = mp->numRows;
   int cols = mp->numCols;
   for (int r=0; r<rows; ++r) {
     mp->productAv[r] = 0;
     for (int c=0; c<cols; ++c) {
-      mp->productAv[r] += mp->matrixA[r*cols + cols];
+      mp->productAv[r] += (mp->matrixA[r*cols + c])*(mp->vectorv[c]);
     }
   }
 }
 
-int main(int argc, char *argv[]) {
+void writeStruct2File(struct MatrixProduct *mp) {
+  int rows = mp->numRows;
+  int cols = mp->numCols;
+  char filename[15];
+  sprintf (filename, "test_%d_%d.bin", mp->numRows, mp->numCols);
+  FILE* outfile;
 
+  // open file for writing
+  outfile = fopen(filename, "wb");
+  if (outfile == NULL) {
+    fprintf(stderr, "\nError opened file\n");
+    exit(1);
+  }
+
+  // write struct to file
+  int success = 0;
+  success = fwrite(mp, sizeof(struct MatrixProduct), 1, outfile);
+  if (!success) {
+      printf("Error Writing to File!");
+      exit(1);
+  }
+
+  success = fwrite(mp->matrixA,sizeof(int)*rows*cols,1,outfile);
+  if (!success) {
+      printf("Error Writing to File!");
+      exit(1);
+  }
+
+  success = fwrite(mp->vectorv,sizeof(int)*cols,1,outfile);
+  if (!success) {
+      printf("Error Writing to File!");
+      exit(1);
+  }
+  success = fwrite(mp->productAv,sizeof(int)*rows,1,outfile);
+  if (!success) {
+      printf("Error Writing to File!");
+      exit(1);
+  }
+
+  // close file
+  fclose(outfile);
+}
+
+int main(int argc, char *argv[]) {
   int nrows; //number of rows in matrix A
   int ncols; //number of cols in matrix A
-
   if (argc != 3) { //check if dims are provided
     printf("You must specify two integer parameters for matrix dimension\n");
     exit(1); //kill program for not having enough
@@ -75,11 +132,11 @@ int main(int argc, char *argv[]) {
   mp.vectorv = (int*) malloc(ncols*sizeof(int)); //allocate vector
   mp.productAv = (int*) malloc(nrows*sizeof(int)); //allocate product
   //provide some user feedback
-  printf("Generating Matrix with %d rows and %d columns.\n", nrows , ncols );
-
+  printf("Generating Matrix with %d rows and %d columns.\n",nrows,ncols);
   populateMatrices(&mp); //populate matrices with random values
-  calculateProduct(&mp);
-
+  calculateProduct(&mp); //calculate the product Av and the sequential timing
+  printMatrices(&mp);
+  writeStruct2File(&mp);
 
     // FILE* outfile;
     //
